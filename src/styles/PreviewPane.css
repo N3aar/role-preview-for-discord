@@ -50,6 +50,24 @@
   grid-template-columns: 60px auto;
 }
 
+.PreviewPane .gradient {
+  animation: 1.5s linear 0s infinite normal none running gradientAnimation;
+  background: linear-gradient(
+    to right,
+    var(--custom-gradient-color-1),
+    var(--custom-gradient-color-2),
+    var(--custom-gradient-color-1)
+  );
+  background-size: 100px auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  content: attr(data-text) / "";
+  inset: 0;
+  -webkit-text-fill-color: transparent;
+  text-indent: 0;
+  transition: opacity 0.1s ease-in-out;
+}
+
 .PreviewPane .message .name {
   grid-column: 2;
   grid-row: 1;
@@ -130,5 +148,14 @@
 
   .PreviewPane .sidebar {
     display: block;
+  }
+}
+
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0px center;
+  }
+  100% {
+    background-position: 100px center;
   }
 }

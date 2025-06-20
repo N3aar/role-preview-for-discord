@@ -6,12 +6,14 @@ const defaultRoles: Role[] = [
   {
     id: 1,
     name: "Example 1",
-    color: "#DC86FF",
+    colorOne: "#4cadd0",
+    colorTwo: "#b2f9ff",
   },
   {
     id: 2,
     name: "Example 2",
-    color: "#1EAB42",
+    colorOne: "#9e6bff",
+    colorTwo: "#9fc1ff",
   },
 ];
 
@@ -19,10 +21,6 @@ export function App() {
   const [roles, setRoles] = useState<Role[]>(JSON.parse(JSON.stringify(defaultRoles)));
 
   const previewRef = useRef<HTMLDivElement | null>(null);
-
-  async function copyColor(color: string) {
-    await navigator.clipboard.writeText(color);
-  }
 
   return (
     <div className="App">

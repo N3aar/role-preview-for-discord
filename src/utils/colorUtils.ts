@@ -35,3 +35,18 @@ export function getContrastRatio(color1: HexColor | RGBColor, color2: HexColor |
   const darker = Math.min(luminance1, luminance2);
   return (lighter + 0.05) / (darker + 0.05);
 }
+
+export const parseHexToRGB = (hex: string) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgb(${r}, ${g}, ${b})`;
+};
+
+export const createDecoration = (colorOne: string, colorTwo: string) =>
+  ({
+    "--custom-gradient-color-1": colorOne,
+    "--custom-gradient-color-2": colorTwo,
+    "--custom-gradient-color-3": colorOne,
+    "text-decoration-color": parseHexToRGB(colorOne),
+  }) as Record<string, string>;

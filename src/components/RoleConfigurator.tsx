@@ -5,7 +5,8 @@ import { DragDropContext, Draggable, Droppable, DropResult } from "@hello-pangea
 export interface Role {
   id: number;
   name: string;
-  color: string;
+  colorOne: string;
+  colorTwo: string;
 }
 
 interface RoleConfiguratorProps {
@@ -24,7 +25,6 @@ const discordDefaultColors = [
   "#e74d3c",
   "#95a5a6",
   "#607d8b",
-
   "#11806a",
   "#1f8b4c",
   "#206694",
@@ -37,95 +37,73 @@ const discordDefaultColors = [
   "#546e7a",
 ];
 
-function isChildOf(ref: HTMLElement, selector: string) {
-  let cursor: HTMLElement | null = ref;
-  do {
-    if (cursor.matches(selector)) {
-      return true;
-    }
-
-    cursor = cursor.parentElement;
-  } while (cursor);
-
-  return false;
-}
-
-// From https://codesandbox.io/s/k260nyxq9v?file=/index.js:373-567
-const reorder = (list: any[], startIndex: number, endIndex: number) => {
+const reorder = <T,>(list: T[], startIndex: number, endIndex: number): T[] => {
   const result = Array.from(list);
   const [removed] = result.splice(startIndex, 1);
   result.splice(endIndex, 0, removed);
-
   return result;
 };
 
-export function RoleConfigurator(props: RoleConfiguratorProps) {
-  function addRole() {
-    const id = Math.max(0, ...props.roles.map((r) => r.id)) + 1;
-    const lastColor = props.roles.length > 0 ? props.roles[props.roles.length - 1].color : "#2ecc71";
-
-    props.setRoles([
-      ...props.roles,
-      {
-        id,
-        name: `Role ${props.roles.length + 1}`,
-        color: lastColor,
-      },
-    ]);
+const isChildOf = (ref: EventTarget | null, selector: string) => {
+  let cursor = ref as HTMLElement | null;
+  while (cursor) {
+    if (cursor.matches?.(selector)) return true;
+    cursor = cursor.parentElement;
   }
+  return false;
+};
 
-  function deleteRole(id: number) {
-    props.setRoles(props.roles.filter((role) => role.id !== id));
-  }
+// ---------------- COMPONENT ------------------
 
-  function updateRoleName(role: Role, newName: string) {
-    role.name = newName;
-    props.setRoles([...props.roles]);
-  }
+export function RoleConfigurator({ roles, setRoles }: RoleConfiguratorProps) {
+  const [openedColorPicker, setOpenedColorPicker] = useState<{
+    roleId: number;
+    type: "colorOne" | "colorTwo";
+  } | null>(null);
 
-  function updateRoleOrder(result: DropResult) {
-    if (!result.destination) {
-      return;
+  const addRole = () => {
+    const id = Math.max(0, ...roles.map((r) => r.id)) + 1;
+    const lastColor = roles.length > 0 ? roles[roles.length - 1].colorOne : "#2ecc71";
+    setRoles([...roles, { id, name: `Role ${roles.length + 1}`, colorOne: lastColor, colorTwo: lastColor }]);
+  };
+
+  const deleteRole = (id: number) => {
+    if (confirm("Are you sure you want to delete this role?")) {
+      setRoles(roles.filter((role) => role.id !== id));
     }
+  };
 
-    const reordered = reorder(props.roles, result.source.index, result.destination.index);
-    props.setRoles(reordered);
-  }
+  const updateRole = (id: number, updates: Partial<Role>) => {
+    setRoles(roles.map((role) => (role.id === id ? { ...role, ...updates } : role)));
+  };
 
-  const [openedColorPicker, setOpenedColorPicker] = useState(0);
+  const updateRoleOrder = (result: DropResult) => {
+    if (!result.destination) return;
+    const reordered = reorder(roles, result.source.index, result.destination.index);
+    setRoles(reordered);
+  };
 
-  function toggleColorPicker(role: Role) {
-    if (openedColorPicker === role.id) {
-      setOpenedColorPicker(0);
+  const toggleColorPicker = (roleId: number, type: "colorOne" | "colorTwo") => {
+    if (openedColorPicker?.roleId === roleId && openedColorPicker.type === type) {
+      setOpenedColorPicker(null);
     } else {
-      setOpenedColorPicker(role.id);
+      setOpenedColorPicker({ roleId, type });
     }
-  }
+  };
 
-  const handleClick = useCallback(
+  const handleWindowClick = useCallback(
     (ev: MouseEvent) => {
-      if (openedColorPicker === 0) {
-        return;
+      if (openedColorPicker && !isChildOf(ev.target, ".RoleConfigurator .color-button-wrapper")) {
+        setOpenedColorPicker(null);
       }
-
-      if (isChildOf(ev.target as HTMLElement, ".RoleConfigurator .color-button-wrapper")) {
-        return;
-      }
-
-      setOpenedColorPicker(0);
     },
     [openedColorPicker],
   );
 
   useEffect(() => {
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, [handleClick]);
-
-  function updateRoleColor(role: Role, color: string) {
-    role.color = color;
-    props.setRoles([...props.roles]);
-  }
+    window.addEventListener("click", handleWindowClick);
+    return () => window.removeEventListener("click", handleWindowClick);
+  }, [handleWindowClick]);
 
   return (
     <div className="RoleConfigurator">
@@ -133,7 +111,7 @@ export function RoleConfigurator(props: RoleConfiguratorProps) {
         <Droppable droppableId="roles-droppable">
           {(provided) => (
             <div {...provided.droppableProps} ref={provided.innerRef} className="roles-list">
-              {props.roles.map((role, index) => (
+              {roles.map((role, index) => (
                 <Draggable key={role.id} draggableId={role.id.toString()} index={index}>
                   {(provided) => (
                     <div className="role" ref={provided.innerRef} {...provided.draggableProps}>
@@ -143,35 +121,62 @@ export function RoleConfigurator(props: RoleConfiguratorProps) {
                             <div className="scuffed-drag-icon" title="Drag to reorder" />
                           </div>
                         </div>
+
                         <div className="color-button-wrapper">
-                          <button
-                            className="color-button"
-                            style={{ ["--role-color" as any]: role.color }}
-                            onClick={() => toggleColorPicker(role)}
-                          >
-                            {role.color}
-                          </button>
-                          {openedColorPicker === role.id && (
+                          <div className="color-buttons">
+                            <button
+                              className="color-button"
+                              style={{ ["--role-color" as any]: role.colorOne }}
+                              onClick={() => toggleColorPicker(role.id, "colorOne")}
+                            >
+                              {role.colorOne}
+                            </button>
+                            <button
+                              className="color-button"
+                              style={{ ["--role-color" as any]: role.colorTwo }}
+                              onClick={() => toggleColorPicker(role.id, "colorTwo")}
+                            >
+                              {role.colorTwo}
+                            </button>
+                          </div>
+
+                          {openedColorPicker?.roleId === role.id && openedColorPicker.type === "colorOne" && (
                             <Suspense fallback={<div className="color-picker placeholder">Loading...</div>}>
                               <Sketch
                                 className="color-picker"
-                                disableAlpha={true}
-                                color={role.color}
+                                disableAlpha
+                                color={role.colorOne}
                                 presetColors={discordDefaultColors}
-                                onChange={(color) => updateRoleColor(role, color.hex)}
+                                onChange={(color) => updateRole(role.id, { colorOne: color.hex })}
+                              />
+                            </Suspense>
+                          )}
+
+                          {openedColorPicker?.roleId === role.id && openedColorPicker.type === "colorTwo" && (
+                            <Suspense fallback={<div className="color-picker placeholder">Loading...</div>}>
+                              <Sketch
+                                className="color-picker"
+                                disableAlpha
+                                color={role.colorTwo}
+                                presetColors={discordDefaultColors}
+                                onChange={(color) => updateRole(role.id, { colorTwo: color.hex })}
                               />
                             </Suspense>
                           )}
                         </div>
+
                         <input
                           className="name-input"
                           type="text"
                           value={role.name}
-                          onChange={(e) => updateRoleName(role, e.target.value)}
+                          onChange={(e) => updateRole(role.id, { name: e.target.value })}
                         />
-                        <button className="delete-button" onClick={() => deleteRole(role.id)}>
-                          Delete
-                        </button>
+
+                        <div className="buttons">
+                          <button className="delete-button" onClick={() => deleteRole(role.id)}>
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -182,6 +187,7 @@ export function RoleConfigurator(props: RoleConfiguratorProps) {
           )}
         </Droppable>
       </DragDropContext>
+
       <button className="add-button" onClick={addRole}>
         Add role
       </button>

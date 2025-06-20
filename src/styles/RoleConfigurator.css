@@ -54,6 +54,10 @@
   position: relative;
 }
 
+.RoleConfigurator .role .color-buttons {
+  display: flex;
+}
+
 .RoleConfigurator .role .color-button {
   --role-color: black;
   background-color: var(--role-color);
@@ -68,6 +72,7 @@
   text-indent: -9999px;
 
   cursor: pointer;
+  margin-inline: 3px;
 }
 
 .RoleConfigurator .color-picker {
@@ -82,7 +87,9 @@
   /* Mirror SketchPicker styles */
   background: #fff;
   border-radius: 4px;
-  box-shadow: rgba(0, 0, 0, 0.15) 0 0 0 1px, rgba(0, 0, 0, 0.15) 0 8px 16px;
+  box-shadow:
+    rgba(0, 0, 0, 0.15) 0 0 0 1px,
+    rgba(0, 0, 0, 0.15) 0 8px 16px;
   padding: 10px;
   font-size: 13px;
 }
